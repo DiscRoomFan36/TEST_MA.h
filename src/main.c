@@ -1,0 +1,61 @@
+
+#define TESTS
+
+#include "TEST_MA.h"
+
+#include <stdio.h>
+
+
+void one_plus_one(void);
+void size_of_works(void);
+void strlen_behaves_as_expected(void);
+void ints_are_64_bit_why_would_you_think_otherwise(void);
+void dont_run_this_test_it_will_kill_you(void);
+
+
+int main(void) {
+    printf("Whats TEST_MA you ask?\n");
+
+    TEST_MA_ADD_TEST(one_plus_one, .custom_name = "basic test");
+    TEST_MA_ADD_TEST(size_of_works);
+    TEST_MA_ADD_TEST(strlen_behaves_as_expected);
+    TEST_MA_ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
+    TEST_MA_ADD_TEST(dont_run_this_test_it_will_kill_you, .dont_run = true);
+
+    int num_tests_failed = TEST_MA_RUN_TESTS();
+    return num_tests_failed;
+}
+
+
+
+int Add(int a, int b) {
+    return a + b;
+}
+
+void one_plus_one(void) {
+    TEST_EXPECT(Add(  1,   1) ==   2);
+    TEST_EXPECT(Add( 34,  35) ==  69);
+    TEST_EXPECT(Add(999, 999) == 999*2);
+}
+
+void size_of_works(void) {
+    char buf[64];
+    TEST_EXPECT(sizeof(buf) == 64);
+}
+
+void strlen_behaves_as_expected(void) {
+    int len = strlen("123456789012345678901234567890");
+    TEST_EXPECT(len == 30);
+
+    TEST_FAIL("everybody hates C strings, just define your own string.");
+}
+
+void ints_are_64_bit_why_would_you_think_otherwise(void) {
+    TEST_EXPECT(sizeof(int)*8 == 64);
+}
+
+void dont_run_this_test_it_will_kill_you(void) {
+    // oh god, oh no, somebody help me!
+    int *ptr = 0;
+    *ptr = 420;
+}
