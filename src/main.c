@@ -1,14 +1,17 @@
 
 #define TESTS
 
+// this is just to test if my macro trick works.
+#define TEST_MA_SKIP_IMPLEMENTATION_FOR_NOW
 #include "TEST_MA.h"
 
 #include <stdio.h>
 
 
+// predefining functions to make this file look cleaner.
 void one_plus_one(void);
 void size_of_works(void);
-void strlen_behaves_as_expected(void);
+void my_strlen_behaves_as_expected(void);
 void ints_are_64_bit_why_would_you_think_otherwise(void);
 void dont_run_this_test_it_will_kill_you(void);
 
@@ -18,7 +21,7 @@ int main(void) {
 
     TEST_MA_ADD_TEST(one_plus_one, .custom_name = "basic test");
     TEST_MA_ADD_TEST(size_of_works);
-    TEST_MA_ADD_TEST(strlen_behaves_as_expected);
+    TEST_MA_ADD_TEST(my_strlen_behaves_as_expected);
     TEST_MA_ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
     TEST_MA_ADD_TEST(dont_run_this_test_it_will_kill_you, .dont_run = true);
 
@@ -31,7 +34,6 @@ int main(void) {
 int Add(int a, int b) {
     return a + b;
 }
-
 void one_plus_one(void) {
     TEST_EXPECT(Add(  1,   1) ==   2);
     TEST_EXPECT(Add( 34,  35) ==  69);
@@ -43,8 +45,14 @@ void size_of_works(void) {
     TEST_EXPECT(sizeof(buf) == 64);
 }
 
-void strlen_behaves_as_expected(void) {
-    int len = strlen("123456789012345678901234567890");
+int my_strlen(const char *s) {
+    int n = 0;
+    while (*s++) n++;
+    return n;
+}
+void my_strlen_behaves_as_expected(void) {
+    TEST_EXPECT(my_strlen("12345") == 5);
+    int len = my_strlen("123456789012345678901234567890");
     TEST_EXPECT(len == 30);
 
     TEST_FAIL("everybody hates C strings, just define your own string.");
@@ -59,3 +67,9 @@ void dont_run_this_test_it_will_kill_you(void) {
     int *ptr = 0;
     *ptr = 420;
 }
+
+
+
+#define TEST_MA_UNDEFINE_SKIP_IMPLEMENTATION
+#include "TEST_MA.h"
+
