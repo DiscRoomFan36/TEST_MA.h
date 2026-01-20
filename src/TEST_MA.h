@@ -75,7 +75,7 @@ void test_my_fibonacci(void) {
     TEST_EXPECT(fib(3) == 2);
     TEST_EXPECT(fib(4) == 3);
 
-    TEST_MA_PRINTF("I sure hope this doesn't take forever.\n");
+    TEST_MA_TEST_PRINTF("I sure hope this doesn't take forever.\n");
     TEST_EXPECT(fib(25) == 75025);
 
     // TEST_FAIL works exactly how you expect.
@@ -97,8 +97,14 @@ void test_my_fibonacci(void) {
 // (TODO talk about that later)
 //
 //
-// Here are there relevent function header. (they are actually
+// Here are there relevent function headers. (they are actually
 // implemented as macros, for developer ease of use)
+//
+//
+// note the prefixes here, at the end of this #ifdef block,
+// we strip the prefixes of of the macros for user friendly-ness
+//
+// Search for    #ifndef TEST_MA_DONT_STRIP_PREFIXES    for more info on prefixes
 //
 
 
@@ -106,10 +112,10 @@ void test_my_fibonacci(void) {
 // expect some expression to evaluate to true, exits the test if false.
 //
 // were doing a poor mans longjmp here.
-// 
+//
 // TODO maybe we should ge the real long jmp in here...
 //
-#define TEST_EXPECT(expr)                               \
+#define TEST_MA_TEST_EXPECT(expr)                               \
         do { if (TEST_MA_internal_test_expect((expr), #expr, __FILE__, __LINE__, NULL))                  return; } while (0)
 
 //
@@ -118,14 +124,14 @@ void test_my_fibonacci(void) {
 // TODO maybe we can combine these somehow?
 // dose something like 'TEST_MA_internal_temp_sprintf( ##__VA_ARGS__## )' work?
 //
-#define TEST_EXPECT_WITH_REASON(expr, reason, ...)      \
+#define TEST_MA_TEST_EXPECT_WITH_REASON(expr, reason, ...)      \
         do { if (TEST_MA_internal_test_expect((expr), #expr, __FILE__, __LINE__, TEST_MA_internal_temp_sprintf(reason, ##__VA_ARGS__))) return; } while (0)
 
 
 //
 // exits the test, failing it in the process. must provide some message
 //
-#define TEST_FAIL(reason, ...)                          \
+#define TEST_MA_TEST_FAIL(reason, ...)                          \
         do { TEST_MA_internal_test_fail(TEST_MA_internal_temp_sprintf(reason, ##__VA_ARGS__), __FILE__, __LINE__); return; } while (0)
 
 //
@@ -140,12 +146,16 @@ void test_my_fibonacci(void) {
 //
 
 typedef struct Add_Test_Opt {
-    // if you dont want to run this test right now.
-    bool dont_run;
     // display a custom name in test logs.
     const char *custom_name;
+    // if you dont want to run this test right now.
+    bool dont_run;
 } Add_Test_Opt;
 
+//
+// Add a test, with optional arguments, just pass
+// the function you want straight in
+//
 #define TEST_MA_ADD_TEST(test_function, ...)        \
     TEST_MA_internal_Add_Test_with_opt(test_function, #test_function, (Add_Test_Opt){ __VA_ARGS__ })
 
@@ -154,10 +164,12 @@ typedef struct Add_Test_Opt {
 //     2. running all added tests:
 //
 
-// returns number of failures
+// returns number of failures.
+//
+// yes, even this is a macro. gotta stay consistent.
 #define TEST_MA_RUN_TESTS() TEST_MA_internal_Run_Tests()
 
-//
+
 //
 //
 // this is an example main function:
@@ -166,16 +178,16 @@ typedef struct Add_Test_Opt {
 
 int main(void) {
     // add the test
-    TEST_MA_ADD_TEST(test_my_fibonacci);
+    ADD_TEST(test_my_fibonacci);
 
     // this function also has optional arguments,
     // (implemented as a macro), see 'Add_Test_Opt' struct
     // definition to see all options
-    TEST_MA_ADD_TEST(test_my_fibonacci, .custom_name = "my fibonacci test", .dont_run = true);
+    ADD_TEST(test_my_fibonacci, .custom_name = "my fibonacci test", .dont_run = true);
 
 
     // run all the tests, and return how many failed.
-    int num_tests_failed = TEST_MA_RUN_TESTS();
+    int num_tests_failed = RUN_TESTS();
 
     // exit abnormally if there were any failed tests.
     return num_tests_failed == 0 ? 0 : 1;
@@ -187,9 +199,17 @@ int main(void) {
 // And thats it. Thats the entire API, (for now.)
 //
 // TODO explain what happens if you crash
-// TODO explain TEST_MA_PRINTF
+// TODO explain TEST_MA_TEST_PRINTF
 //
 //
+
+
+// can be used to swap out printf for something else later
+//
+// new line is required for now... might remove it later...
+#define TEST_MA_TEST_PRINTF(fmt, ...)       printf("    " fmt, ##__VA_ARGS__)
+
+
 
 
 // TODO crash example
@@ -207,37 +227,20 @@ void test_negative_numbers_in_fib(void) {
 
 
 
-
-// what static means in a local variable context
-#define TEST_MA_local_persist       static
-// what static means in a function context, (its marked private)
-#define TEST_MA_internal            static
-// what static means in a global variable context, (i have no idea)
-#define TEST_MA_global_variable     static
-
-
-
-
-
-
+//
+// Internal Functions:
+//
+// Needed here because of macros.
+//
 
 void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, Add_Test_Opt opt);
-
-
-
 
 // returns number of failures
 int TEST_MA_internal_Run_Tests(void);
 
-
-
-
-
-
 bool TEST_MA_internal_test_expect(bool result, const char *expression_string,
                                   const char *file, int line,
                                   const char *reason);
-
 
 void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
@@ -245,61 +248,42 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
 
 
-
-
-
-
-// tools to help you create tests, and help test state management
-
-
-
-// TODO maybe this could be a helper macro.
-// // predefine the tests
-// #define X(test, ...)   void test(void);
-//     TESTS
-// #undef X
-
-
-
-
-
-// when calling TEST_EXPECT or otherwise failing a test, one of these is set to true
-
-
-// // TODO use __FILE__ and __LINE__ for better messages.
-// #define SET_CURRENT_TEST_FAILED(reason_text_fmt, ...)                               \
-//     do {                                                                            \
-//         if (!(0 <= TEST_MA_context.current_test_index && TEST_MA_context.current_test_index < (int)TEST_MA_context.tests_count)) {      \
-//             assert(false && "You called some test function in an improper way, use TEST_MA_RUN_TESTS to run your tests, you cannot run tests individually for now");        \
-//         } else {                                                                    \
-//             TEST_MA_context.tests[TEST_MA_context.current_test_index].test_failed = true;       \
-//             TEST_MA_context.tests[TEST_MA_context.current_test_index].reason_for_test_failure = TEST_MA_internal_temp_sprintf(reason_text_fmt, ##__VA_ARGS__);       \
-//         }                                                                           \
-//     } while (0)
-
-
-
-
-// can be used to swap out printf for something else later
 //
-// new line is required for now... might remove it later...
-#define TEST_MA_TEST_PRINTF(fmt, ...)       printf("    " fmt, ##__VA_ARGS__)
+// Inspired by (but an inversion of) "nob.h"'s NOB_STRIP_PREFIX macro.
+//
+// If You    #define TEST_MA_DONT_STRIP_PREFIXES    the macros will not be stripped.
+//
+// I might change it to the way nob.h dose it.
+// but this library is suppost to be stupid easy to use.
+//
 
-// TODO TEST_MA_STRIP_PREFIXES
-#define TEST_PRINTF     TEST_MA_TEST_PRINTF
+#ifdef TEST_MA_STRIP_PREFIX
+    #warning "TEST_MA_STRIP_PREFIX isn't being used right now. This fact might change later."
+#endif
 
+#ifndef TEST_MA_DONT_STRIP_PREFIXES
 
+    #define TEST_EXPECT                     TEST_MA_TEST_EXPECT
+    #define TEST_EXPECT_WITH_REASON         TEST_MA_TEST_EXPECT_WITH_REASON
+    #define TEST_FAIL                       TEST_MA_TEST_FAIL
 
+    #define TEST_PRINTF                     TEST_MA_TEST_PRINTF
 
-// TODO do something like this.
-// #ifndef TEST_MA_DONT_STRIP_PREFIXES
-//     // #define TEST_PRINTF TEST_MA_PRINTF
-// #endif // TEST_MA_DONT_STRIP_PREFIXES
+    #define ADD_TEST                        TEST_MA_ADD_TEST
+    #define RUN_TESTS                       TEST_MA_RUN_TESTS
+
+#endif // TEST_MA_DONT_STRIP_PREFIXES
 
 
 
 
 #endif // TEST_MA_H
+
+
+
+
+
+
 
 
 
@@ -334,6 +318,17 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
 #ifndef __TEST_MA_IMPLEMENTATION_GUARD
 #define __TEST_MA_IMPLEMENTATION_GUARD
+
+
+
+// what static means in a local variable context
+#define TEST_MA_local_persist       static
+// what static means in a function context, (its marked private)
+#define TEST_MA_internal            static
+// what static means in a global variable context, (i have no idea)
+#define TEST_MA_global_variable     static
+
+
 
 
 
@@ -427,6 +422,7 @@ TEST_MA_global_variable TEST_MA_Context TEST_MA_context = {
 
 
 
+// TODO use __FILE__ and __LINE__ for better messages.
 TEST_MA_internal void TEST_MA_internal_set_current_test_failed(const char *text) {
     bool current_index_in_bounds = (0 <= TEST_MA_context.current_test_index && TEST_MA_context.current_test_index < (int)TEST_MA_context.tests_count);
 

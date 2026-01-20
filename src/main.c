@@ -2,6 +2,9 @@
 #define TESTS
 
 // this is just to test if my macro trick works.
+//
+// if you use this header, you don't have to #define this,
+// and #include "TEST_MA.h" again at the end of the file.
 #define TEST_MA_SKIP_IMPLEMENTATION_FOR_NOW
 #include "TEST_MA.h"
 
@@ -19,13 +22,13 @@ void dont_run_this_test_it_will_kill_you(void);
 int main(void) {
     printf("Whats TEST_MA you ask?\n");
 
-    TEST_MA_ADD_TEST(one_plus_one, .custom_name = "basic test");
-    TEST_MA_ADD_TEST(size_of_works);
-    TEST_MA_ADD_TEST(my_strlen_behaves_as_expected);
-    TEST_MA_ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
-    TEST_MA_ADD_TEST(dont_run_this_test_it_will_kill_you, .dont_run = true);
+    ADD_TEST(one_plus_one, .custom_name = "basic test");
+    ADD_TEST(size_of_works);
+    ADD_TEST(my_strlen_behaves_as_expected);
+    ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
+    ADD_TEST(dont_run_this_test_it_will_kill_you, .dont_run = true);
 
-    int num_tests_failed = TEST_MA_RUN_TESTS();
+    int num_tests_failed = RUN_TESTS();
     return num_tests_failed;
 }
 
