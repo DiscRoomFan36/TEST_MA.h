@@ -26,7 +26,11 @@ int main(void) {
     ADD_TEST(size_of_works);
     ADD_TEST(my_strlen_behaves_as_expected);
     ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
-    ADD_TEST(dont_run_this_test_it_will_kill_you, .dont_run = true);
+    // this function will crash, and the test handler will handle it.
+    ADD_TEST(dont_run_this_test_it_will_kill_you);
+
+    ADD_TEST(dont_run_this_test_it_will_kill_you, .custom_name = "wait, dont run this one.", .dont_run = true);
+
 
     int num_tests_failed = RUN_TESTS();
     return num_tests_failed;

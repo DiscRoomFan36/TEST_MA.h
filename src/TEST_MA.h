@@ -341,6 +341,19 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
 #include <assert.h>  // for 'assert()'
 
+#include <stdlib.h>  // for 'exit()'
+
+
+#ifdef _WIN32
+
+    #warning "Windows support has not been tested. good luck."
+
+#else
+
+    #include <unistd.h>     // for 'fork()' and other functions for test sandboxing
+    #include <sys/wait.h>   // for 'waitpid()'
+
+#endif
 
 
 
@@ -493,6 +506,140 @@ void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_fun
 
 
 
+TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
+    TEST_MA_One_Test *to_test = &TEST_MA_context.tests[test_index];
+
+#ifdef _WIN32
+
+    // Windows dose not support for, we use fork for sandboxing
+    // against testing functions crashing, and for automatic
+    // memory management, you can't leek memory from the os.
+    // it sees all.
+    TEST_MA_context.current_test_index = test_index;
+    to_test->func();
+    TEST_MA_context.current_test_index = -1;
+
+#else
+
+    TEST_MA_context.current_test_index = test_index;
+
+    bool run_on_main_thread = false;
+
+    union Pipe_File_Descriptors {
+        struct { int read, write; };
+        int as_pair[2];
+    } pipefd;
+
+    bool close_pipefd = false;
+
+
+    if (pipe2(pipefd.as_pair, 0) != 0) {
+        perror("Could not create pipes");
+        run_on_main_thread = true;
+        goto just_do_the_test_on_the_main_thread;
+    } else {
+        close_pipefd = true;
+    }
+
+    // assumes you provide a L-value
+    #define CLOSE_PIPE(pipe) do { if (pipe) { close(pipe); pipe = 0; } } while (0)
+    // fork the process so we dont die if someone divides by zero.
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("error when trying to fork");
+        run_on_main_thread = true;
+        goto just_do_the_test_on_the_main_thread;
+    }
+
+    if (pid == 0) { // child process
+        // child dose not read
+        CLOSE_PIPE(pipefd.read);
+
+        to_test->func();
+
+        if (to_test->test_failed) {
+            // send some info back to the parent
+            //
+            // we know we did not crash, but we did fail a test.
+            //
+            // +1 because were also sending the null terminator
+            write(pipefd.write, to_test->reason_for_test_failure, strlen(to_test->reason_for_test_failure)+1);
+            CLOSE_PIPE(pipefd.write);
+            exit(1);
+        }
+
+        CLOSE_PIPE(pipefd.write);
+        exit(0);
+
+    }
+
+    // we are the parent
+
+    // parent dose not write
+    CLOSE_PIPE(pipefd.write);
+
+
+    // TODO WNOHANG for quitting after some time, to stop inf loops.
+    //
+    // TODO we need to get more info out of this 
+
+    // wait for child to quit.
+    int status;
+    pid_t result = waitpid(pid, &status, 0);
+
+    if (result == -1) {
+        perror("Could not wait for child to end. Quitting");
+        exit(1);
+    }
+    assert(result == pid);
+
+    if (status != 0) {
+        to_test->test_failed = true;
+
+        // try to get a message from the dead child.
+        char buf[512] = {0};
+        // make sure there will still be a null terminator.
+        ssize_t count = read(pipefd.read, buf, sizeof(buf)-1);
+        if (count == -1) {
+            perror("Could not read from pipe");
+            to_test->reason_for_test_failure = "UNKNOWN: Failed To Read From Pipe";
+        } else {
+
+            size_t n = strlen(buf);
+
+            if (n != 0) {
+                // @Leak we could keep track of things like this, but meh.
+                to_test->reason_for_test_failure = strdup(buf);
+            } else {
+                to_test->reason_for_test_failure = "UNKNOWN: Test did not communicate with test handler, it probably crashed.";
+            }
+        }
+    }
+
+
+
+just_do_the_test_on_the_main_thread:
+    if (close_pipefd) {
+        // TODO use to communicate
+        CLOSE_PIPE(pipefd.read);
+        CLOSE_PIPE(pipefd.write);
+    }
+
+    #undef CLOSE_PIPE // take out the trash
+
+
+    if (run_on_main_thread) {
+        printf("Running test on main thread. If this crashes we all go down.\n");
+        to_test->func();
+    }
+
+
+    TEST_MA_context.current_test_index = -1;
+
+#endif
+}
+
+
 
 int TEST_MA_internal_Run_Tests(void) {
     if (TEST_MA_context.tests_count == 0) {
@@ -515,27 +662,28 @@ int TEST_MA_internal_Run_Tests(void) {
 
 
 
-    for (size_t i = 0; i < TEST_MA_context.tests_count; i++) {
-        TEST_MA_One_Test *to_test = &TEST_MA_context.tests[i];
+    for (size_t test_index = 0; test_index < TEST_MA_context.tests_count; test_index++) {
+        TEST_MA_One_Test *to_test = &TEST_MA_context.tests[test_index];
 
         const char *test_name = to_test->real_function_name;
         if (to_test->opt.custom_name) test_name = to_test->opt.custom_name;
 
         if (to_test->opt.dont_run) {
-            printf(WC(TEST_MA_COLOR_GRAY,  "Passing Test %ld: %-*s") "\n\n", i, max_text_len, test_name);
-            continue;
+            printf(WC(TEST_MA_COLOR_GRAY,  "Passing Test %ld: %-*s") "\n\n", test_index, max_text_len, test_name);
+            continue;;
         }
 
-        printf("Running Test %ld: " WC(TEST_MA_COLOR_YELLOW, "%-*s") "\n", i, max_text_len, test_name);
+        printf("Running Test %ld: " WC(TEST_MA_COLOR_YELLOW, "%-*s") "\n", test_index, max_text_len, test_name);
 
-        TEST_MA_context.current_test_index =  i;
-        to_test->func();
-        TEST_MA_context.current_test_index = -1;
+
+        // actually run the test here.
+        TEST_MA_internal_run_one_test(test_index);
+
 
         if (!to_test->test_failed) {
-            printf("Test " WC(TEST_MA_COLOR_GREEN, "Passed") " %ld: " WC(TEST_MA_COLOR_YELLOW, "%s") "\n", i, test_name);
+            printf("Test " WC(TEST_MA_COLOR_GREEN, "Passed") " %ld: " WC(TEST_MA_COLOR_YELLOW, "%s") "\n", test_index, test_name);
         } else {
-            printf(WC(TEST_MA_COLOR_RED,   "Test Failed %ld: ") WC(TEST_MA_COLOR_YELLOW, "%s") "\n", i, test_name);
+            printf(WC(TEST_MA_COLOR_RED,   "Test Failed %ld: ") WC(TEST_MA_COLOR_YELLOW, "%s") "\n", test_index, test_name);
             printf("    " WC(TEST_MA_COLOR_RED, "%s") "\n", to_test->reason_for_test_failure);
         }
         printf("\n");
