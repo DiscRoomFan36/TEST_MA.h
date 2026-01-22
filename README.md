@@ -14,9 +14,9 @@ The `TEST_MA.h` file itself explains most of whats in this readme (and more it d
 Only tested on Unix, good luck everybody else.
 
 
-## How Do I Use TEST_MA.h? (The Quick Version)
+## How Do I Use `TEST_MA.h`? (The Quick Version)
 
-The src/example.c file is a good demonstration, (And the TEST_MA.h file itself is a good resource),
+The src/example.c file is a good demonstration, (And the `TEST_MA.h` file itself is a good resource),
 
 But heres a quick example file, with a step by step breakdown below.
 
@@ -61,7 +61,7 @@ int main(void) {
 }
 ```
 
-## How Do I Use TEST_MA.h? (The Slow Version)
+## How Do I Use `TEST_MA.h`? (The Slow Version)
 
 A Step By Step Breakdown
 
@@ -212,7 +212,7 @@ Here is what we do instead:
 
 #### A: Get Out Of The Sandbox
 
-- TEST_MA.h has a sandbox that it uses to protect the entire program from crashing, or taking to long. however, this sandbox cannot be easily debugged. so options have been added to help you with that.
+- `TEST_MA.h` has a sandbox that it uses to protect the entire program from crashing, or taking to long. however, this sandbox cannot be easily debugged. so options have been added to help you with that.
 
   A - Per Test
     - When adding a test, change the optional argument `run_without_sandbox` to true, like this:
@@ -248,7 +248,7 @@ The default `.timeout_time` is **1 second**, so if you need a test to run for lo
 #### A: No :)
 
 
-### Q: What is TEST_MA.h?
+### Q: What is `TEST_MA.h`?
 
 #### A: TEST_MA c program dumbass!
 
