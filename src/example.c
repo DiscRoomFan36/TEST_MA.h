@@ -6,7 +6,7 @@
 // if you use this header, you don't have to #define this,
 // and #include "TEST_MA.h" again at the end of the file.
 #define TEST_MA_SKIP_IMPLEMENTATION_FOR_NOW
-#include "TEST_MA.h"
+#include "../TEST_MA.h"
 
 #include <stdio.h>
 
@@ -126,5 +126,5 @@ void i_just_need_2_seconds(void) {
 
 
 #define TEST_MA_UNDEFINE_SKIP_IMPLEMENTATION
-#include "TEST_MA.h"
+#include "../TEST_MA.h"
 
