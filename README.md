@@ -163,7 +163,7 @@ $ ./nob debug && ./build/example_debug
 
 ## Wait, What Single-File-Header Quirks Where You Talking About?
 
-Normal Single Header Libraries would use thing like **Implementation Guards** And **Macros To Enable Striping Prefixes**, however ,this library inverts those principles.
+Normal Single Header Libraries would use thing like **Implementation Guards** And **Macros To Enable Striping Prefixes**, however this library inverts those principles.
 
 
 Here is what a Normal Library Would Do:
