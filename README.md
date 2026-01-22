@@ -230,13 +230,15 @@ Here is what we do instead:
 
 #### A: Sandbox Has Got You Covered (Probably)
 
-- *(On Unix)* Your test is run in a separate process the test runner can detect if it crashes, and will tell you so. it dose not give any more information than telling you it crashed, sorry, your gonna have to open the debugger.
+- *(On Unix)* Your test is run in a separate process the test runner can detect if it crashes, and will tell you so.
+
+It dose not give any more information than telling you it crashed, sorry, your gonna have to open the debugger.
 
 
 ### Q: What Happens If My Test Gets Stuck In An Infinite Loop?
 
 #### A: Sandbox Has Got You Covered (Probably) 2
-(On Unix) tests can be given a `.timeout_time`, when the tests time is up, the child process gets kill'd and the test is reported as having timed out. so you don't have to worry about that.
+(On Unix) tests can be given a `.timeout_time`, when the tests time is up, the child process gets kill'd and the test is reported as having timed out. So you don't have to worry about that.
 
 The default `.timeout_time` is **1 second**, so if you need a test to run for longer, you can either set the `.timeout_time` to be as long as you like.
 
