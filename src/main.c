@@ -17,23 +17,42 @@ void size_of_works(void);
 void my_strlen_behaves_as_expected(void);
 void ints_are_64_bit_why_would_you_think_otherwise(void);
 void dont_run_this_test_it_will_kill_you(void);
+void i_will_run_until_the_heat_death_of_the_universe(void);
+void i_will_also_run_forever_but_in_a_different_way(void);
+void i_just_need_2_seconds(void);
 
 
 int main(void) {
     printf("Whats TEST_MA you ask?\n");
 
+    // basic tests
     ADD_TEST(one_plus_one, .custom_name = "basic test");
     ADD_TEST(size_of_works);
+
+    // oh no! these ones will fail
     ADD_TEST(my_strlen_behaves_as_expected);
     ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
+
     // this function will crash, and the test handler will handle it.
     ADD_TEST(dont_run_this_test_it_will_kill_you);
+    // custom name, and showing you can stop some tests from running
+    ADD_TEST(dont_run_this_test_it_will_kill_you, .dont_run = true, .custom_name = "wait, dont run this one.");
 
-    ADD_TEST(dont_run_this_test_it_will_kill_you, .custom_name = "wait, dont run this one.", .dont_run = true);
+    // these test will inf loop,
+    // the test runner will quit after 1 second
+    ADD_TEST(i_will_run_until_the_heat_death_of_the_universe);
+    ADD_TEST(i_will_also_run_forever_but_in_a_different_way);
 
+    // giving this test just a little more time.
+    ADD_TEST(i_just_need_2_seconds, .timeout_time = 2.0);
+    // this will wait forever, so technically this program is never guaranteed to end!
+    ADD_TEST(i_just_need_2_seconds, .timeout_time = -1, .custom_name = "inf wait time.");
 
     int num_tests_failed = RUN_TESTS();
-    return num_tests_failed;
+    printf("num_tests_failed = %d\n", num_tests_failed);
+    printf("someone should fix those!\n");
+
+    return 0;
 }
 
 
@@ -75,6 +94,28 @@ void dont_run_this_test_it_will_kill_you(void) {
     *ptr = 420;
 }
 
+void i_will_run_until_the_heat_death_of_the_universe(void) {
+    int i = 0;
+    TEST_PRINTF("I will live forever\n");
+    while (true) { i += 1; }
+    TEST_PRINTF("%d\n", i);
+}
+
+// we need 'sleep()'
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
+
+void i_will_also_run_forever_but_in_a_different_way(void) {
+    sleep(999999999);
+}
+
+void i_just_need_2_seconds(void) {
+    sleep(1);
+}
 
 
 #define TEST_MA_UNDEFINE_SKIP_IMPLEMENTATION

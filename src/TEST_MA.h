@@ -150,6 +150,17 @@ typedef struct Add_Test_Opt {
     const char *custom_name;
     // if you dont want to run this test right now.
     bool dont_run;
+
+    // how long, (in seconds,) before the test is forcefully shut down.
+    // to prevent inf loops.
+    //
+    // defaults to 1 second. more than enough time for a program to do something.
+    //
+    // (because of implementation details, '0' is the default, (witch gets converted to 1),
+    // so you cannot wait 0 seconds, just wait EPSILON seconds instead)
+    //
+    // -1 means 'Run Forever'
+    double timeout_time;
 } Add_Test_Opt;
 
 //
@@ -343,10 +354,14 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
 #include <stdlib.h>  // for 'exit()'
 
+#include <time.h>    // for the 'TEST_MA_get_time_in_nanoseconds()' function
+
 
 #ifdef _WIN32
 
     #warning "Windows support has not been tested. good luck."
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
 
 #else
 
@@ -492,6 +507,14 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line) 
 void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, Add_Test_Opt opt) {
     assert(TEST_MA_context.tests_count < TEST_MA_ARRAY_LEN(TEST_MA_context.tests));
 
+    #define TEST_MA_DEFAULT_TIMEOUT_TIME        (1.0)
+    if (opt.timeout_time == 0) opt.timeout_time = TEST_MA_DEFAULT_TIMEOUT_TIME;
+
+    if (opt.timeout_time < 0 && opt.timeout_time != -1) {
+        fprintf(stderr, "timeout_time was negative, but not -1, you should probably fix that\n");
+        exit(1);
+    }
+
     TEST_MA_One_Test new_test = {
         .func = func,
         .real_function_name = real_function_name,
@@ -505,6 +528,50 @@ void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_fun
 }
 
 
+// TODO time tests
+// TODO time out tests.
+
+
+#define TEST_MA_NANOSECONDS_PER_SECOND  (1000UL * 1000UL * 1000UL)
+
+
+TEST_MA_internal uint64_t TEST_MA_internal_get_time_in_nanoseconds(void) {
+    #ifdef _WIN32
+        // This is untested.
+
+        struct timespec ts;
+
+        if (timespec_get(&ts, TIME_UTC) != TIME_UTC) {
+            perror("timespec_get failed!");
+            return 0;
+        }
+        return TEST_MA_NANOSECONDS_PER_SECOND * ts.tv_sec + ts.tv_nsec;
+
+    #else
+
+        struct timespec ts;
+
+        #ifndef CLOCK_MONOTONIC
+            #define VSCODE_IS_DUMB___THIS_NEVER_HAPPENS
+            #define CLOCK_MONOTONIC 69420
+        #endif
+        // don't worry, this will never trigger.
+        assert(CLOCK_MONOTONIC != 69420);
+
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+
+        timespec_get(&ts, TIME_UTC);
+
+        return TEST_MA_NANOSECONDS_PER_SECOND * ts.tv_sec + ts.tv_nsec;
+    #endif
+}
+
+
+
+TEST_MA_internal void TEST_MA_internal_just_run_one_test_single_threaded(TEST_MA_One_Test *to_test) {
+    printf("Running test on main thread. If this crashes we all go down.\n");
+    to_test->func();
+}
 
 TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
     TEST_MA_One_Test *to_test = &TEST_MA_context.tests[test_index];
@@ -523,22 +590,15 @@ TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
 
     TEST_MA_context.current_test_index = test_index;
 
-    bool run_on_main_thread = false;
-
     union Pipe_File_Descriptors {
         struct { int read, write; };
         int as_pair[2];
-    } pipefd;
+    } pipefd = {};
 
-    bool close_pipefd = false;
-
-
-    if (pipe2(pipefd.as_pair, 0) != 0) {
+    if (pipe(pipefd.as_pair) != 0) {
         perror("Could not create pipes");
-        run_on_main_thread = true;
-        goto just_do_the_test_on_the_main_thread;
-    } else {
-        close_pipefd = true;
+        TEST_MA_internal_just_run_one_test_single_threaded(to_test);
+        goto defer;
     }
 
     // assumes you provide a L-value
@@ -547,8 +607,8 @@ TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
     pid_t pid = fork();
     if (pid == -1) {
         perror("error when trying to fork");
-        run_on_main_thread = true;
-        goto just_do_the_test_on_the_main_thread;
+        TEST_MA_internal_just_run_one_test_single_threaded(to_test);
+        goto defer;
     }
 
     if (pid == 0) { // child process
@@ -570,7 +630,6 @@ TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
 
         CLOSE_PIPE(pipefd.write);
         exit(0);
-
     }
 
     // we are the parent
@@ -579,13 +638,69 @@ TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
     CLOSE_PIPE(pipefd.write);
 
 
-    // TODO WNOHANG for quitting after some time, to stop inf loops.
+    // TODO we could get more info out of this.
     //
-    // TODO we need to get more info out of this 
+    // if we ever plan to block stdout for the child, we'll need some
+    // pipe magic to contain all the printf, so we can toggle the
+    // output, or only display it when the test fails
 
-    // wait for child to quit.
+    uint64_t start_time = TEST_MA_internal_get_time_in_nanoseconds();
+
+    int waitpid_options = WNOHANG;
+    if (to_test->opt.timeout_time == -1) {
+        // here we remove the WNOHANG flag when the
+        // user tells us to wait forever
+        waitpid_options &= ~WNOHANG;
+    }
+
     int status;
-    pid_t result = waitpid(pid, &status, 0);
+    pid_t result;
+
+    // this would be simplified by epoll, maybe. (if that even works with waitpid)
+
+    while (true) {
+        result = waitpid(pid, &status, waitpid_options);
+
+        // waitpid had finished with the child.
+        if (result != 0) break;
+
+        //
+        // else check how much time has passed.
+        //
+        uint64_t curr_time = TEST_MA_internal_get_time_in_nanoseconds();
+        // hope this dose not lose precision.
+        double time_passed_in_seconds = (double)(curr_time - start_time) / (double)TEST_MA_NANOSECONDS_PER_SECOND;
+
+        // if not a lot of time has passed, lets wait a little longer.
+        if (time_passed_in_seconds < to_test->opt.timeout_time) {
+            // sleep for a small amount of time.
+            //
+            // a time that is probably longer than 100us but we do not care,
+            // were just waiting without aim.
+            //
+            // need to chose a small enough time so we dont have to wait often,
+            // but also a long enough time so we don't wait to long of a time if
+            // we have a ton of small tests
+            #define TEST_MA_TIME_TO_WAIT_BETWEEN_CHECKING_ON_THE_CHILD      (100)
+            usleep(TEST_MA_TIME_TO_WAIT_BETWEEN_CHECKING_ON_THE_CHILD);
+
+            continue;
+        }
+
+
+        // child took to long.
+        if (kill(pid, 1) != 0 ) { // KILL THE CHILD
+            // technically there is a race condition here,
+            // the child finished just before we kill it.
+            // but who cares? i all ready decided you took to long.
+            //
+            // we just print something, continue the function.
+            perror("Could not kill child.");
+        }
+        to_test->test_failed = true;
+        to_test->reason_for_test_failure = "TIMEOUT: child process took to long to execute, so we terminated it.";
+        goto defer;
+    }
 
     if (result == -1) {
         perror("Could not wait for child to end. Quitting");
@@ -618,21 +733,12 @@ TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
 
 
 
-just_do_the_test_on_the_main_thread:
-    if (close_pipefd) {
-        // TODO use to communicate
-        CLOSE_PIPE(pipefd.read);
-        CLOSE_PIPE(pipefd.write);
-    }
+defer:
+    // this will not close the 0th pipe, dont worry.
+    CLOSE_PIPE(pipefd.read);
+    CLOSE_PIPE(pipefd.write);
 
     #undef CLOSE_PIPE // take out the trash
-
-
-    if (run_on_main_thread) {
-        printf("Running test on main thread. If this crashes we all go down.\n");
-        to_test->func();
-    }
-
 
     TEST_MA_context.current_test_index = -1;
 
@@ -662,6 +768,7 @@ int TEST_MA_internal_Run_Tests(void) {
 
 
 
+    int number_of_fails = 0;
     for (size_t test_index = 0; test_index < TEST_MA_context.tests_count; test_index++) {
         TEST_MA_One_Test *to_test = &TEST_MA_context.tests[test_index];
 
@@ -681,15 +788,15 @@ int TEST_MA_internal_Run_Tests(void) {
 
 
         if (!to_test->test_failed) {
-            printf("Test " WC(TEST_MA_COLOR_GREEN, "Passed") " %ld: " WC(TEST_MA_COLOR_YELLOW, "%s") "\n", test_index, test_name);
+            printf("Test " WC(TEST_MA_COLOR_GREEN, "Passed") "  %ld: " WC(TEST_MA_COLOR_YELLOW, "%s") "\n", test_index, test_name);
         } else {
-            printf(WC(TEST_MA_COLOR_RED,   "Test Failed %ld: ") WC(TEST_MA_COLOR_YELLOW, "%s") "\n", test_index, test_name);
+            number_of_fails += 1;
+            printf("Test " WC(TEST_MA_COLOR_RED, "Failed") "  %ld: " WC(TEST_MA_COLOR_YELLOW, "%s") "\n", test_index, test_name);
             printf("    " WC(TEST_MA_COLOR_RED, "%s") "\n", to_test->reason_for_test_failure);
         }
         printf("\n");
     }
 
-    int number_of_fails = 0;
     for (size_t i = 0; i < TEST_MA_context.tests_count; i++) {
         TEST_MA_One_Test *to_test = &TEST_MA_context.tests[i];
 
@@ -700,7 +807,6 @@ int TEST_MA_internal_Run_Tests(void) {
         if (!to_test->opt.dont_run) {
             if (to_test->test_failed) {
                 status_text = TEST_MA_internal_temp_sprintf(WC(TEST_MA_COLOR_RED, "FAILED") "  - %s", to_test->reason_for_test_failure);
-                number_of_fails += 1;
             } else {
                 status_text = WC(TEST_MA_COLOR_GREEN, "SUCCESS");
             }
@@ -712,6 +818,8 @@ int TEST_MA_internal_Run_Tests(void) {
         );
     }
 
+    // extra new line for style.
+    printf("\n");
 
     //
     // maybe reset this?
