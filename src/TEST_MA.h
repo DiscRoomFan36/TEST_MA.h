@@ -209,7 +209,47 @@ int main(void) {
 //
 // And thats it. Thats the entire API, (for now.)
 //
-// TODO explain what happens if you crash
+
+//
+//  Any Questions?
+//
+
+//
+// Q: What Happens If My Test Crashes?
+//
+// A:
+//     (On Unix) Your test is run in a seperate process
+//     the test runner can detect if it crashes, and will
+//     tell you so. it dose not give any more information
+//     than telling you it crashed, sorry, your gonna have
+//     to printf debug. (TODO option to run tests single threaded, so you can run a debugger)
+//
+
+//
+// Q: What Happens If My Test Gets Stuck In An Infinite Loop?
+//
+// A:
+//     (On Unix) tests can be given a .timeout_time, when the tests
+//     time is up, the child process gets kill'd and the test is
+//     reported as having timed out. so you don't have to worry about that.
+// 
+//     Note: the default timeout_time is ** 1 second **, so if you need
+//     a test to run for longer, you can either set the .timeout_time
+//     to be as long as you like.    (or -1 which means wait forever.)
+//
+
+//
+// Q: Is This Library Tested On Windows?
+//
+// A:
+//     No. :)
+//
+
+
+
+
+
+//
 // TODO explain TEST_MA_TEST_PRINTF
 //
 //
@@ -754,7 +794,7 @@ int TEST_MA_internal_Run_Tests(void) {
         return 0;
     }
 
-
+    // find the longest test name, for formatting reasons.
     int max_text_len = 0;
     for (size_t i = 0; i < TEST_MA_context.tests_count; i++) {
         TEST_MA_One_Test *to_test = &TEST_MA_context.tests[i];
