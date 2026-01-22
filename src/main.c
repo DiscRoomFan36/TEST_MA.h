@@ -57,7 +57,7 @@ int main(void) {
     int num_tests_failed = RUN_TESTS(.disable_sandboxing_for_all_tests = false);
 
     printf("num_tests_failed = %d\n", num_tests_failed);
-    printf("someone should fix those!\n");
+    if (num_tests_failed != 0)    printf("someone should fix those!\n");
 
     return 0;
 }
