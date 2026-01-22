@@ -22,8 +22,8 @@ static Cmd cmd = {0};
     X(help,         "prints this help message and quits")       \
     X(all,          "build all targets. [debug, release]")      \
     X(clean,        "clean up all build artifacts, happens before all other commands, so 'all clean' will clean everything, then build everything.")        \
-    X(debug,        "build   debug native version")             \
-    X(release,      "build release native version")             \
+    X(debug,        "build   debug version")                    \
+    X(release,      "build release version")                    \
 
 
 
@@ -112,18 +112,6 @@ int main(int argc, char **argv) {
 
         // its ok to ignore the result, if nob.old did not exist, no reason to delete it.
         delete_file("./nob.old");
-    }
-
-
-
-    // TODO make this a command line arg
-    //
-    // this gets the latest version of Bested.h, I know that I might have to
-    // refactor stuff when i do this, but its worth it to me.
-    #define BESTED_PATH "/home/fletcher/Programming/C-things/Bested.h/Bested.h"
-    if (file_exists(BESTED_PATH) == 1) {
-        bool result = copy_file(BESTED_PATH, THIRDPARTY_FOLDER"Bested.h");
-        if (!result) return 1;
     }
 
 
