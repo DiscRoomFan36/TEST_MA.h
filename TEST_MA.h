@@ -19,8 +19,6 @@
 //
 // Lets Go thought the API of this library together,
 //
-// TODO something about skipping to a quick overview
-//
 // lets just jump over this include guard and function
 // definition, and hop right in!
 //
@@ -475,10 +473,12 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
 
 
-// TODO how big should we make this number?
+// TODO some tests reason_for_failure relies on temp_sprintf,
 //
-// how many tests can the user possibly have?
-#define TEST_MA_TEMP_SPRINTF_NUM_BUFFERS        256
+// probably should copy those out.
+// 
+// also im leaking memory every time a test fails, but who cares?
+#define TEST_MA_TEMP_SPRINTF_NUM_BUFFERS        512
 #define TEST_MA_TEMP_SPRINTF_BUFFER_SIZE        512
 
 const char *TEST_MA_internal_temp_sprintf(const char *format, ...) {
@@ -617,11 +617,8 @@ void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_fun
 
 
 // TODO time tests
-// TODO time out tests.
-
 
 #define TEST_MA_NANOSECONDS_PER_SECOND  (1000UL * 1000UL * 1000UL)
-
 
 TEST_MA_internal uint64_t TEST_MA_internal_get_time_in_nanoseconds(void) {
     #ifdef _WIN32

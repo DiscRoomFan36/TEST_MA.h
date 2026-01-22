@@ -258,4 +258,17 @@ The default `.timeout_time` is **1 second**, so if you need a test to run for lo
 
 ## TODO
 
-* prevent the user from calling exit(0) to pass test immediately? (How?)
+* make TEST_EXPECT_EQ() macro that prints out the left and right side.
+
+* prevent the user from calling exit(0) to pass test immediately (How?)
+* check if it works on windows.
+* make the sandbox work on windows. (anybody is welcome to help with that, I don't know windows programming.)
+
+* Make temp_sprintf() atomic
+* TEST_MA.h:513: use __FILE__ and __LINE__ for better messages.
+* time tests
+
+* eventually we could replace stdout, so that when the user printf's we capture it, as well as our own testing succsess messages,
+  - would require a lot of pipe manipulation, ehh
+
+
