@@ -3,7 +3,7 @@
 
 What is `TEST_MA` you ask? Great Question!
 
-`TEST_MA.h` is a C testing (single header) library, it is designed for ease of use.
+`TEST_MA.h` is a C (single-header) testing library, it is designed for ease of use.
 
 *also has some weird quirks compared to other single header files, but we'll talk about them later.*
 
