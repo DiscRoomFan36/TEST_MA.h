@@ -181,8 +181,11 @@ typedef struct TEST_MA_Add_Test_Opt {
     TEST_MA_internal_Add_Test_with_opt(test_function, #test_function, (TEST_MA_Add_Test_Opt){ __VA_ARGS__ })
 
 
+
+//
 //
 //     2. running all added tests:
+//
 //
 
 typedef struct TEST_MA_Run_Tests_Opt {
@@ -193,10 +196,11 @@ typedef struct TEST_MA_Run_Tests_Opt {
     bool disable_sandboxing_for_all_tests;
 } TEST_MA_Run_Tests_Opt;
 
+//
 // returns number of failures.
 //
-// yes, even this is a macro. gotta stay consistent.
 #define TEST_MA_RUN_TESTS(...) TEST_MA_internal_Run_Tests((TEST_MA_Run_Tests_Opt){ __VA_ARGS__ })
+
 
 
 //
@@ -227,21 +231,44 @@ int main(void) {
 //
 // And thats it. Thats the entire API, (for now.)
 //
+// Any Questions?
+//
+
 
 //
-//  Any Questions?
+// Q: How Do I Debug My Test Function? / Whats Wrong With My Debugger?
 //
+// A:
+//     TEST_MA.h has a sandbox that it uses to protect the entire program
+//     from crashing, or taking to long. however, this sandbox cannot be
+//     easily debugged. so options have been added to help you with that.
+//
+//     Option A: Per Test
+//         When adding a test, change the optional argument
+//         ' run_without_sandbox ' to true, like this:
+//
+//             ADD_TEST(my_test, .run_without_sandbox = true);
+//
+//
+//     Option B: For Every Test
+//         Run every test without sandboxing with the
+//         ' disable_sandboxing_for_all_tests ' argument.
+//
+//             RUN_TESTS(.disable_sandboxing_for_all_tests = true)
+//
+
 
 //
 // Q: What Happens If My Test Crashes?
 //
 // A:
-//     (On Unix) Your test is run in a seperate process
+//     (On Unix) Your test is run in a separate process
 //     the test runner can detect if it crashes, and will
 //     tell you so. it dose not give any more information
 //     than telling you it crashed, sorry, your gonna have
-//     to printf debug. (TODO option to run tests single threaded, so you can run a debugger)
+//     to open the debugger.
 //
+
 
 //
 // Q: What Happens If My Test Gets Stuck In An Infinite Loop?
@@ -255,6 +282,7 @@ int main(void) {
 //     a test to run for longer, you can either set the .timeout_time
 //     to be as long as you like.    (or -1 which means wait forever.)
 //
+
 
 //
 // Q: Is This Library Tested On Windows?
