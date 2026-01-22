@@ -161,6 +161,16 @@ typedef struct Add_Test_Opt {
     //
     // -1 means 'Run Forever'
     double timeout_time;
+
+    // by default, tests are run in a child process. (on unix). but common debuggers
+    // cannot debug child processes like that. so to allow you to use your debugger
+    // within this testing framework, this option allows you to run just this test,
+    // (not any others), on the main thread, just set a breakpoint at the start of
+    // the function you want to test.
+    //
+    // WARNING: test framework will not catch crashes
+    // WARNING: test framework will not catch inf loops. (and timeout dose not work)
+    bool run_without_sandbox;
 } Add_Test_Opt;
 
 //
@@ -175,10 +185,18 @@ typedef struct Add_Test_Opt {
 //     2. running all added tests:
 //
 
+typedef struct TEST_MA_Run_Tests_Opt {
+    // see comment for  bool run_without_sandbox;
+    //
+    // this disables all sandboxing for all tests. there is currently no
+    // way to override this command, so be careful
+    bool disable_sandboxing_for_all_tests;
+} TEST_MA_Run_Tests_Opt;
+
 // returns number of failures.
 //
 // yes, even this is a macro. gotta stay consistent.
-#define TEST_MA_RUN_TESTS() TEST_MA_internal_Run_Tests()
+#define TEST_MA_RUN_TESTS(...) TEST_MA_internal_Run_Tests((TEST_MA_Run_Tests_Opt){ __VA_ARGS__ })
 
 
 //
@@ -287,7 +305,7 @@ void test_negative_numbers_in_fib(void) {
 void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, Add_Test_Opt opt);
 
 // returns number of failures
-int TEST_MA_internal_Run_Tests(void);
+int TEST_MA_internal_Run_Tests(TEST_MA_Run_Tests_Opt opt);
 
 bool TEST_MA_internal_test_expect(bool result, const char *expression_string,
                                   const char *file, int line,
@@ -478,6 +496,8 @@ typedef struct TEST_MA_Context {
 
     TEST_MA_One_Test tests[TEST_MA_MAX_TESTS];
     size_t tests_count;
+
+    TEST_MA_Run_Tests_Opt run_test_options;
 } TEST_MA_Context;
 
 // global variable for now. this just makes it easier to do things
@@ -609,12 +629,25 @@ TEST_MA_internal uint64_t TEST_MA_internal_get_time_in_nanoseconds(void) {
 
 
 TEST_MA_internal void TEST_MA_internal_just_run_one_test_single_threaded(TEST_MA_One_Test *to_test) {
-    printf("Running test on main thread. If this crashes we all go down.\n");
+    printf(WC(TEST_MA_COLOR_YELLOW, "WARNING") " - Running test on main thread. If this crashes we all go down.\n");
     to_test->func();
 }
 
 TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
     TEST_MA_One_Test *to_test = &TEST_MA_context.tests[test_index];
+
+
+    bool disable_sandbox = false;
+    disable_sandbox = disable_sandbox || TEST_MA_context.run_test_options.disable_sandboxing_for_all_tests;
+    disable_sandbox = disable_sandbox || to_test->opt.run_without_sandbox;
+
+    if (disable_sandbox) {
+        TEST_MA_context.current_test_index = test_index;
+        TEST_MA_internal_just_run_one_test_single_threaded(to_test);
+        TEST_MA_context.current_test_index = -1;
+        return;
+    }
+
 
 #ifdef _WIN32
 
@@ -748,10 +781,11 @@ TEST_MA_internal void TEST_MA_internal_run_one_test(size_t test_index) {
     }
     assert(result == pid);
 
+    // when the test fails, we need to get the failure reason.
     if (status != 0) {
         to_test->test_failed = true;
 
-        // try to get a message from the dead child.
+        // try to get a message from the dead child, fromthe pipe we made earlier.
         char buf[512] = {0};
         // make sure there will still be a null terminator.
         ssize_t count = read(pipefd.read, buf, sizeof(buf)-1);
@@ -787,12 +821,14 @@ defer:
 
 
 
-int TEST_MA_internal_Run_Tests(void) {
+int TEST_MA_internal_Run_Tests(TEST_MA_Run_Tests_Opt opt) {
     if (TEST_MA_context.tests_count == 0) {
         // TODO better message.
         printf("No tests to run.\n");
         return 0;
     }
+
+    TEST_MA_context.run_test_options = opt;
 
     // find the longest test name, for formatting reasons.
     int max_text_len = 0;

@@ -29,9 +29,13 @@ int main(void) {
     ADD_TEST(one_plus_one, .custom_name = "basic test");
     ADD_TEST(size_of_works);
 
-    // oh no! these ones will fail
-    ADD_TEST(my_strlen_behaves_as_expected);
-    ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise);
+    // oh no! these ones will fail,
+    // 
+    // we run these without sandboxing, so that you can run
+    // your debugger and break on these functions. to see 
+    // where they went wrong!
+    ADD_TEST(my_strlen_behaves_as_expected,                 .run_without_sandbox = true);
+    ADD_TEST(ints_are_64_bit_why_would_you_think_otherwise, .run_without_sandbox = true);
 
     // this function will crash, and the test handler will handle it.
     ADD_TEST(dont_run_this_test_it_will_kill_you);
@@ -48,7 +52,10 @@ int main(void) {
     // this will wait forever, so technically this program is never guaranteed to end!
     ADD_TEST(i_just_need_2_seconds, .timeout_time = -1, .custom_name = "inf wait time.");
 
-    int num_tests_failed = RUN_TESTS();
+
+    // run the tests, also showing (but not useing) a dangerous option.
+    int num_tests_failed = RUN_TESTS(.disable_sandboxing_for_all_tests = false);
+
     printf("num_tests_failed = %d\n", num_tests_failed);
     printf("someone should fix those!\n");
 
