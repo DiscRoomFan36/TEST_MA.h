@@ -145,7 +145,7 @@ void test_my_fibonacci(void) {
 //     1. Adding the test / tests:
 //
 
-typedef struct Add_Test_Opt {
+typedef struct TEST_MA_Add_Test_Opt {
     // display a custom name in test logs.
     const char *custom_name;
     // if you dont want to run this test right now.
@@ -171,14 +171,14 @@ typedef struct Add_Test_Opt {
     // WARNING: test framework will not catch crashes
     // WARNING: test framework will not catch inf loops. (and timeout dose not work)
     bool run_without_sandbox;
-} Add_Test_Opt;
+} TEST_MA_Add_Test_Opt;
 
 //
 // Add a test, with optional arguments, just pass
 // the function you want straight in
 //
 #define TEST_MA_ADD_TEST(test_function, ...)        \
-    TEST_MA_internal_Add_Test_with_opt(test_function, #test_function, (Add_Test_Opt){ __VA_ARGS__ })
+    TEST_MA_internal_Add_Test_with_opt(test_function, #test_function, (TEST_MA_Add_Test_Opt){ __VA_ARGS__ })
 
 
 //
@@ -210,7 +210,7 @@ int main(void) {
     ADD_TEST(test_my_fibonacci);
 
     // this function also has optional arguments,
-    // (implemented as a macro), see 'Add_Test_Opt' struct
+    // (implemented as a macro), see 'TEST_MA_Add_Test_Opt' struct
     // definition to see all options
     ADD_TEST(test_my_fibonacci, .custom_name = "my fibonacci test", .dont_run = true);
 
@@ -302,7 +302,7 @@ void test_negative_numbers_in_fib(void) {
 // Needed here because of macros.
 //
 
-void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, Add_Test_Opt opt);
+void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, TEST_MA_Add_Test_Opt opt);
 
 // returns number of failures
 int TEST_MA_internal_Run_Tests(TEST_MA_Run_Tests_Opt opt);
@@ -477,7 +477,7 @@ const char *TEST_MA_internal_temp_sprintf(const char *format, ...) {
 typedef struct TEST_MA_One_Test {
     Test_Function *func;
     const char *real_function_name;
-    Add_Test_Opt opt;
+    TEST_MA_Add_Test_Opt opt;
 
     // will be set to true inside one of the tests, when you call TEST_FAIL() or something
     bool test_failed;
@@ -564,7 +564,7 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line) 
 
 
 
-void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, Add_Test_Opt opt) {
+void TEST_MA_internal_Add_Test_with_opt(Test_Function func, const char *real_function_name, TEST_MA_Add_Test_Opt opt) {
     assert(TEST_MA_context.tests_count < TEST_MA_ARRAY_LEN(TEST_MA_context.tests));
 
     #define TEST_MA_DEFAULT_TIMEOUT_TIME        (1.0)
