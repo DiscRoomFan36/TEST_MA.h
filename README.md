@@ -1,14 +1,17 @@
 
 # TEST_MA.h
 
-Whats `TEST_MA` you ask? Great Question!
+What is `TEST_MA` you ask? Great Question!
 
 `TEST_MA.h` is a C testing (single header) library, it is designed for ease of use.
 
-*and has some weird quirks compared to other single header files, but we'll talk about them later.*
+*also has some weird quirks compared to other single header files, but we'll talk about them later.*
+
+Has safeties inbuilt so that you cannot **segfault** or **inf loop** your tests.  (Only available on platforms that are not Windows.)
 
 The `TEST_MA.h` file itself explains most of whats in this readme (and more it doesn't explain), if you would prefer to read that.
 
+Only tested on Unix, good luck everybody else.
 
 
 ## How Do I Use TEST_MA.h? (The Quick Version)
@@ -205,6 +208,52 @@ Here is what we do instead:
 
 ## Questions
 
-### What If My Program Crashes?
+### Q: How Do I Debug My Test Function? / Whats Wrong With My Debugger?
 
-TODO
+#### A: Get Out Of The Sandbox
+
+- TEST_MA.h has a sandbox that it uses to protect the entire program from crashing, or taking to long. however, this sandbox cannot be easily debugged. so options have been added to help you with that.
+
+  A - Per Test
+    - When adding a test, change the optional argument `run_without_sandbox` to true, like this:
+        ```c
+        ADD_TEST(my_test, .run_without_sandbox = true);
+        ```
+
+  B - For Every Test
+    - Run every test without sandboxing with the `disable_sandboxing_for_all_tests` argument.
+        ```c
+        RUN_TESTS(.disable_sandboxing_for_all_tests = true)
+        ```
+
+### Q: What Happens If My Test Crashes?
+
+#### A: Sandbox Has Got You Covered (Probably)
+
+- *(On Unix)* Your test is run in a separate process the test runner can detect if it crashes, and will tell you so. it dose not give any more information than telling you it crashed, sorry, your gonna have to open the debugger.
+
+
+### Q: What Happens If My Test Gets Stuck In An Infinite Loop?
+
+#### A: Sandbox Has Got You Covered (Probably) 2
+(On Unix) tests can be given a `.timeout_time`, when the tests time is up, the child process gets kill'd and the test is reported as having timed out. so you don't have to worry about that.
+
+The default `.timeout_time` is **1 second**, so if you need a test to run for longer, you can either set the `.timeout_time` to be as long as you like.
+
+*or -1 which means wait forever*
+
+
+### Q: Is This Library Tested On Windows?
+
+#### A: No :)
+
+
+### Q: What is TEST_MA.h?
+
+#### A: TEST_MA c program dumbass!
+
+
+
+## TODO
+
+* prevent the user from calling exit(0) to pass test immediately? (How?)
