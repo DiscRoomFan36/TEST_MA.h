@@ -154,8 +154,8 @@ bool build_debug(void) {
     cmd_c_flags();
     cmd_append(&cmd, "-ggdb"); // debug flag
 
-    cmd_append(&cmd, "-o", BUILD_FOLDER"main_debug");
-    cmd_append(&cmd, SRC_FOLDER"main.c");
+    cmd_append(&cmd, "-o", BUILD_FOLDER"example_debug");
+    cmd_append(&cmd, SRC_FOLDER"example.c");
 
     if (!cmd_run(&cmd)) return false;
     return true;
@@ -166,8 +166,8 @@ bool build_release(void) {
     cmd_c_flags();
     cmd_append(&cmd, "-O2");
 
-    cmd_append(&cmd, "-o", BUILD_FOLDER"main_release");
-    cmd_append(&cmd, SRC_FOLDER"main.c");
+    cmd_append(&cmd, "-o", BUILD_FOLDER"example_release");
+    cmd_append(&cmd, SRC_FOLDER"example.c");
 
     if (!cmd_run(&cmd)) return false;
     return true;
