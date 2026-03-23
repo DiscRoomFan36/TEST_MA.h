@@ -59,6 +59,12 @@ int main(void) {
     printf("num_tests_failed = %d\n", num_tests_failed);
     if (num_tests_failed != 0)    printf("someone should fix those!\n");
 
+    // 5 tests are suppost to fail.
+    if (num_tests_failed != 5) {
+        fprintf(stderr, "expected 5 tests to fail, but got %d\n", num_tests_failed);
+        return 1;
+    }
+
     return 0;
 }
 
