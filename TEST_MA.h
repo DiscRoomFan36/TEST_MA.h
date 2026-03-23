@@ -4,7 +4,7 @@
 // Author   - Fletcher M
 //
 // Created  - 19/01/26
-// Modified - 19/01/26
+// Modified - 23/03/26
 //
 //
 // TEST_MA.h is a C testing library, Simply create some test,
@@ -32,6 +32,9 @@ static const char *TEST_MA_internal_temp_sprintf(const char *format, ...) __attr
 
 // ignore this
 #include <stdbool.h> // for 'bool'
+// ignore this
+#define TEST_MA_internal_STRINGIFY(x)   #x
+
 
 //
 //
@@ -114,7 +117,7 @@ void test_my_fibonacci(void) {
 // TODO maybe we should ge the real long jmp in here...
 //
 #define TEST_MA_TEST_EXPECT(expr)                               \
-        do { if (TEST_MA_internal_test_expect((expr), #expr, __FILE__, __LINE__, NULL))                  return; } while (0)
+    do { if (TEST_MA_internal_test_expect((expr), #expr, __FILE__, __LINE__, NULL))                  return; } while (0)
 
 //
 // just TEST_EXPECT, but you can add extra text
@@ -123,14 +126,27 @@ void test_my_fibonacci(void) {
 // dose something like 'TEST_MA_internal_temp_sprintf( ##__VA_ARGS__## )' work?
 //
 #define TEST_MA_TEST_EXPECT_WITH_REASON(expr, reason, ...)      \
-        do { if (TEST_MA_internal_test_expect((expr), #expr, __FILE__, __LINE__, TEST_MA_internal_temp_sprintf(reason, ##__VA_ARGS__))) return; } while (0)
+    do { if (TEST_MA_internal_test_expect((expr), #expr, __FILE__, __LINE__, TEST_MA_internal_temp_sprintf(reason, ##__VA_ARGS__))) return; } while (0)
+
+//
+// test if 2 numbers (or 2 pointers) are the same.
+// allows you to see the numbers they where.
+//
+// expects ints or pointers. converts 'left' and 'right' into "long long"'s
+//
+#define TEST_MA_TEST_EXPECT_EQ(left, right)             \
+    do {                                                \
+        long long _left  = (long long)(left);           \
+        long long _right = (long long)(right);          \
+        if ( TEST_MA_internal_test_expect(_left == _right, TEST_MA_internal_STRINGIFY(left) " == " TEST_MA_internal_STRINGIFY(right), __FILE__, __LINE__, TEST_MA_internal_temp_sprintf("%s: %lld, %s: %lld", TEST_MA_internal_STRINGIFY(left), _left, TEST_MA_internal_STRINGIFY(right), _right)) ) return;    \
+    } while (0)
 
 
 //
 // exits the test, failing it in the process. must provide some message
 //
 #define TEST_MA_TEST_FAIL(reason, ...)                          \
-        do { TEST_MA_internal_test_fail(TEST_MA_internal_temp_sprintf(reason, ##__VA_ARGS__), __FILE__, __LINE__); return; } while (0)
+    do { TEST_MA_internal_test_fail(TEST_MA_internal_temp_sprintf(reason, ##__VA_ARGS__), __FILE__, __LINE__); return; } while (0)
 
 //
 //
@@ -360,6 +376,8 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 
     #define TEST_EXPECT                     TEST_MA_TEST_EXPECT
     #define TEST_EXPECT_WITH_REASON         TEST_MA_TEST_EXPECT_WITH_REASON
+    #define TEST_EXPECT_EQ                  TEST_MA_TEST_EXPECT_EQ
+
     #define TEST_FAIL                       TEST_MA_TEST_FAIL
 
     #define TEST_PRINTF                     TEST_MA_TEST_PRINTF

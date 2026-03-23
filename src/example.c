@@ -74,14 +74,16 @@ int Add(int a, int b) {
     return a + b;
 }
 void one_plus_one(void) {
-    TEST_EXPECT(Add(  1,   1) ==   2);
-    TEST_EXPECT(Add( 34,  35) ==  69);
-    TEST_EXPECT(Add(999, 999) == 999*2);
+    // normal TEST_EXPECT
+    TEST_EXPECT   (Add(  1,   1) ==   2);
+    // TEST_EXPECT_EQ for a nicer output. (when it fails.)
+    TEST_EXPECT_EQ(Add( 34,  35),    69);
+    TEST_EXPECT_EQ(Add(999, 999), 999*2);
 }
 
 void size_of_works(void) {
     char buf[64];
-    TEST_EXPECT(sizeof(buf) == 64);
+    TEST_EXPECT_EQ(sizeof(buf), 64);
 }
 
 int my_strlen(const char *s) {
@@ -98,7 +100,7 @@ void my_strlen_behaves_as_expected(void) {
 }
 
 void ints_are_64_bit_why_would_you_think_otherwise(void) {
-    TEST_EXPECT(sizeof(int)*8 == 64);
+    TEST_EXPECT_EQ(sizeof(int)*8, 64);
 }
 
 void dont_run_this_test_it_will_kill_you(void) {

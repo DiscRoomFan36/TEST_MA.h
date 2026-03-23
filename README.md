@@ -38,6 +38,8 @@ void test_my_fibonacci(void) {
     TEST_EXPECT_WITH_REASON(fib(0) == 1, "*my* fib function starts from 1 not zero.");
 
     TEST_EXPECT(fib(24) == 75025);
+    // TEST_EXPECT_EQ is the same thing, but it gives you a better output.
+    TEST_EXPECT_EQ(fib(24), 75025);
 
     if (1 == 3) TEST_FAIL("Just making sure. you can never be too careful, what if we were on a 1-bit int system?");
 }
@@ -105,6 +107,8 @@ void test_my_fibonacci(void) {
     TEST_EXPECT_WITH_REASON(fib(0) == 1, "*my* fib function starts from 1 not zero.");
 
     TEST_EXPECT(fib(24) == 75025);
+    // TEST_EXPECT_EQ is the same thing, but it gives you a better output.
+    TEST_EXPECT_EQ(fib(24), 75025);
 
     if (1 == 3) TEST_FAIL("Just making sure, you can never be too careful, what if we were on a 1-bit int system?");
 }
@@ -252,13 +256,11 @@ The default `.timeout_time` is **1 second**, so if you need a test to run for lo
 
 ### Q: What is `TEST_MA.h`?
 
-#### A: TEST_MA c program dumbass!
+#### A: Its a testing framework. What else could it possibly be?
 
 
 
 ## TODO
-
-* make TEST_EXPECT_EQ() macro that prints out the left and right side.
 
 * prevent the user from calling exit(0) to pass test immediately (How?)
 * check if it works on windows.
