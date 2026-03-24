@@ -582,7 +582,10 @@ bool TEST_MA_internal_test_expect(bool result, const char *expression_string,
     (void) line; // TODO for better errors
 
     if (result) {
-        TEST_MA_internal_test_expect_success(expression_string);
+        // Hmmm, the output looks a little weird in TEST_EXPECT_EQ, maybe a flag to differentiate these cases?
+        const char *text = expression_string;
+        if (reason) text = TEST_MA_internal_temp_sprintf("%s - %s", expression_string, reason);
+        TEST_MA_internal_test_expect_success(text);
         return false;
     }
 
