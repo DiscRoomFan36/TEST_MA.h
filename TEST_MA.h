@@ -4,7 +4,7 @@
 // Author   - Fletcher M
 //
 // Created  - 19/01/26
-// Modified - 26/03/26
+// Modified - 10/04/26
 //
 //
 // TEST_MA.h is a C testing library, Simply create some test,
@@ -489,6 +489,19 @@ void TEST_MA_internal_test_fail(const char *reason, const char *file, int line);
 #define TEST_MA_ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
 
 
+// I really hate c++ sometimes
+#ifdef __cplusplus
+    // this allows c++ to do value initialization,
+    // witch is spiritually the same thing.
+    //
+    // also c++ complains if there is only 1 zero.
+    #define TEST_MA_ZEROED { /* Imagine there was a zero here */ }
+#else
+    // pretty sure this zero is necessary in C
+    #define TEST_MA_ZEROED {0}
+#endif
+
+
 
 
 // TODO some tests reason_for_failure relies on temp_sprintf,
@@ -899,7 +912,7 @@ TEST_MA_internal const char *TEST_MA_internal_test_index_to_test_number_text(siz
     int test_number_width = TEST_MA_internal_int_log_10(TEST_MA_context.tests_count);
 
     // we are going to be returning this buffer
-    TEST_MA_local_persist char test_number_text[32] = ZEROED;
+    TEST_MA_local_persist char test_number_text[32] = TEST_MA_ZEROED;
     snprintf(test_number_text, sizeof(test_number_text), "%*zu", test_number_width, real_test_index);
 
     return test_number_text;
