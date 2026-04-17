@@ -20,6 +20,8 @@ void dont_run_this_test_it_will_kill_you(void);
 void i_will_run_until_the_heat_death_of_the_universe(void);
 void i_will_also_run_forever_but_in_a_different_way(void);
 void i_just_need_2_seconds(void);
+void this_one_is_expected_to_crash(void);
+void this_one_is_expected_to_crash_but_actually_wont(void);
 
 
 int main(void) {
@@ -52,6 +54,10 @@ int main(void) {
     // this will wait forever, so technically this program is never guaranteed to end!
     ADD_TEST(i_just_need_2_seconds, .timeout_time = -1, .custom_name = "inf wait time.");
 
+    // expect_crash will fail if you dont crash, otherwise it will pass on crash
+    ADD_TEST(this_one_is_expected_to_crash,                   .expect_crash = true);
+    ADD_TEST(this_one_is_expected_to_crash_but_actually_wont, .expect_crash = true);
+
 
     // run the tests, also showing (but not useing) a dangerous option.
     int num_tests_failed = RUN_TESTS(.disable_sandboxing_for_all_tests = false);
@@ -59,9 +65,10 @@ int main(void) {
     printf("num_tests_failed = %d\n", num_tests_failed);
     if (num_tests_failed != 0)    printf("someone should fix those!\n");
 
+    #define EXPECTED_TO_FAIL 6
     // 5 tests are suppost to fail.
-    if (num_tests_failed != 5) {
-        fprintf(stderr, "expected 5 tests to fail, but got %d\n", num_tests_failed);
+    if (num_tests_failed != EXPECTED_TO_FAIL) {
+        fprintf(stderr, "expected %d tests to fail, but got %d\n", EXPECTED_TO_FAIL, num_tests_failed);
         return 1;
     }
 
@@ -130,6 +137,18 @@ void i_will_also_run_forever_but_in_a_different_way(void) {
 
 void i_just_need_2_seconds(void) {
     sleep(1);
+}
+
+void this_one_is_expected_to_crash(void) {
+    // oh god, oh no, somebody help me! ^2
+    int *ptr = 0;
+    *ptr = 420;
+}
+
+void this_one_is_expected_to_crash_but_actually_wont(void) {
+    int x = 5;
+    int *ptr = &x;
+    *ptr = 420;
 }
 
 
